@@ -1,0 +1,32 @@
+<h2><%= link_to 'New', new_user_plan_activity_path %></h2>
+
+<% content_for :header_tags do %>
+  <%= javascript_include_tag "raphael.js", :plugin => 'user_load_plan' %>
+  <%= javascript_include_tag "user_load_graph.js", :plugin => 'user_load_plan' %>
+
+  <%= stylesheet_link_tag 'user_load_plan', :plugin => 'user_load_plan' %>
+
+  <script type = "text/javascript">
+    window.onload = function() {
+      var graph = $("<div></div>").attr("id", "holder");
+      var td = $("<td rowspan = \"2\"></td>").append(graph);
+      $("tr#legend").first().append(td);
+      // draw using ajax
+      draw_plan();
+    }
+  </script>
+<% end %>
+
+<table border = "0">
+  <tr>
+    <th>User</th><th>Load Plan</th>
+  </tr>
+  <tr id = "legend"><td>Legend</td></tr>
+  <% @users.each do |member| %>
+    <tr>
+      <td heigth = "50px" id = "user_<%= member.id %>"><%= member.id %></td>
+    </tr>
+  <% end %>
+  <tr id = "spacer"><td>&nbsp;</td>
+  </tr>
+</table>

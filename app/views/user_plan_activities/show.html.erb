@@ -1,0 +1,33 @@
+<% content_for :header_tags do %>
+  <%= stylesheet_link_tag 'user_load_plan', :plugin => 'user_load_plan' %>
+<% end %>
+
+<%= link_to 'Back', user_plan_activities_path %>
+
+<div class = "container">
+  <div class = "inputline">
+    <div class = "title">Project</div>
+    <div class = "value"><%= @activity.project_id %></div>
+  </div>
+
+  <div class = "inputline">
+    <div class = "title">User</div>
+    <div class = "value"><%= @activity.user_id %></div>
+  </div>
+
+  <div class = "inputline">
+    <div class = "title">Start date</div>
+    <div class = "value"><%= @activity.start_date %></div>
+  </div>
+
+  <div class = "inputline">
+    <div class = "title">End date</div> 
+    <div class = "value"><%= @activity.end_date %></div>
+  </div>
+
+  <div class = "inputline">
+    <div class = "title">Load</div>
+    <div class = "value"><%= @activity.load %></div>
+  </div>
+</div>
+
