@@ -7,8 +7,6 @@ Redmine::Plugin.register :user_load_plan do
   author_url 'http://example.com/about'
 
   permission :user_load_plan, { :user_load_plan => [:index, :new] }, :public => true
-  
-  puts 'extending project menu'
 
   menu(:project_menu,
        :contracts,

@@ -2,7 +2,7 @@
 
 <% content_for :header_tags do %>
   <%= javascript_include_tag "raphael.js", :plugin => 'user_load_plan' %>
-  <%= javascript_include_tag "user_load_graph.js", :plugin => 'user_load_plan' %>
+  <%= javascript_include_tag "user_load_graph.js" %>
 
   <%= stylesheet_link_tag 'user_load_plan', :plugin => 'user_load_plan' %>
 
@@ -22,9 +22,9 @@
     <th>User</th><th>Load Plan</th>
   </tr>
   <tr id = "legend"><td>Legend</td></tr>
-  <% @users.each do |member| %>
+  <% @users.each do |user| %>
     <tr>
-      <td heigth = "50px" id = "user_<%= member.id %>"><%= member.id %></td>
+      <td heigth = "50px" id = "user_<%= user.id %>"><%= user.firstname %> <%= user.lastname %></td>
     </tr>
   <% end %>
   <tr id = "spacer"><td>&nbsp;</td>

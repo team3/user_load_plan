@@ -1,19 +1,47 @@
-draw_plan_canvas = function(r, start_date_sec, end_date_sec, pxc, plot_heigth) {
-  var chart_limit = (end_date_sec  - start_date_sec) / 1000;
-
-  var start_date = new Date(start_date_sec * 1000);
-  var end_date = new Date(end_date_sec * 1000);
+draw_plan_canvas = function(graph_container, r, start_date_sec, end_date_sec, pxc, plot_heigth) {
+  var FONT_STYLE = {font: '16px "Helvetica Neue", Arial', fill: "#666"}
+  var plot_width = (60 * 60 * 24 * 1000 * 7+ end_date_sec  - start_date_sec) / 1000;
   var days_count = (end_date_sec - start_date_sec) / (60 * 60 * 24);
-  console.log(days_count);
-  // draw markers
+
+  // draw the canvas' borders
+  r.path("M0 1L" + plot_width + " 1");
+  r.path("M0 50L" + plot_width + " 50");
+  r.path("M1 " + (plot_heigth - 2) + " L" + plot_width + " " + (plot_heigth - 2));
+  r.path("M1 1L1 50");
+  r.path("M" + plot_width + " 1L " + plot_width + " " + plot_heigth);
+
+  // setting recalculated sizes for the container
+  r.setSize(plot_width, plot_heigth)
+  // if canwar horizonal or vertical size less then holder's initial size - reduce holder's size
+  if (plot_width < parseInt($(graph_container).css("width"))) {
+    $(graph_container).css("width", plot_width + 20);
+    $(graph_container).css("overflow-x", "auto");
+  }
+
+  if (plot_heigth < parseInt($(graph_container).css("width"))) {
+    $(graph_container).css("height", plot_heigth + 20);
+    $(graph_container).css("overflow-y", "auto");
+  }
+
+  // calculating the distance between weeks on the graph in pixels
   var delta = (60 * 60 * 24) / pxc;
-  for (i = 0,j = 0; i < chart_limit, j < days_count; i+= delta, j++) {
+
+  // variable i uses for pixels calculations, 
+  // variable j uses for days calculations
+  for (i = 0,j = 0; i < plot_width, j < days_count; i+= delta, j++) {
+    // calculating new date (old date plus one day)
     date = new Date((parseInt(start_date_sec) + (60 * 60 * 24) * j) * 1000);
-    //console.log(date);
-    text = r.text(i+30, 80, getWeekNumber(date)[1] ).
-      attr({font: '16px "Helvetica Neue", Arial', fill: "#666"});
-  
-    r.path("M " + i + " 2 l 0 " + plot_heigth);
+    // draw marker for the week`s number
+    r.text(i + 30, 80, getWeekNumber(date)[1]).attr(FONT_STYLE);
+    // if it's Monday - draw horizontal line-separator and draw dates
+    if (date.getDay() == 1) {
+      r.path("M" + i + " 0L" + i + " 50");
+      newdate = new Date(date + 7);
+      var dates_label = date.getDate() + "-" + date.getMonth()+ "-" +date.getFullYear() + "-" + newdate.getDate()+ "-" +newdate.getMonth()+ "-" +newdate.getFullYear();
+      r.text((i - delta * 2) + 30, 20, dates_label).attr(FONT_STYLE);
+    }
+    // draw VERTICAL line for separating the weeks
+    r.path("M" + i + " 50L" + i + " " + plot_heigth);
   }
 }
 
@@ -32,9 +60,14 @@ function getWeekNumber(d) {
   return [d.getFullYear(), weekNo];
 }
 
-draw_plan_activity = function(r, pos_x, pos_y, width, height) {
+draw_plan_activity = function(r, pos_x, pos_y, width, height, activity_id) {
   dashed = {fill: "#3C0", stroke: "#666", "stroke-dasharray": "- "};
-  r.rect(pos_x, pos_y, width, height).attr(dashed);
+  t = r.rect(pos_x, pos_y, width, height).attr(dashed);
+  t.click(function() {open_activity_edit_view(activity_id)});
+}
+
+open_activity_edit_view = function(activity_id) {
+  window.open('/usersloadplan/user_plan_activities/' + activity_id, 300, 600);
 }
 
 draw_plan = function() {
@@ -55,8 +88,7 @@ draw_plan = function() {
       // for each user
       $(data.plans).each(function(i, plan) {
         y += deltaY;
-        console.log(y);
-        draw_plan_canvas(r, xmin, xmax, PXC, containerHeight * data.plans.length + 400);
+        draw_plan_canvas($("div#holder"), r, xmin, xmax, PXC, containerHeight * data.plans.length + 400);
         $("td#user_" + plan.user).css("height", containerHeight);
         $("td#user_" + plan.user).parent().after($("<tr></tr>").css("height", deltaY).html("<td>&nbsp;</td>"))
         $("div#holder").parent().attr("rowspan", $("div#holder").parent().attr("rowspan") + 2);
@@ -66,6 +98,7 @@ draw_plan = function() {
           var x1 = activity[0];
           var x2 = activity[1];
           var load = activity[2];
+          var aid = activity[3];
 
           r.path("M 0 " + y + " l " + chart_limit + " 0");
           var y1 = y + (containerHeight - (containerHeight * (load / 100)));
@@ -75,10 +108,12 @@ draw_plan = function() {
 
           r.path("M 0 " + (y + containerHeight) + " l " + chart_limit + " 0");
 
-          draw_plan_activity(r, (x1 - xmin) / PXC, y1, (x2 - xmin) / PXC, y2);
+          draw_plan_activity(r, (x1 - xmin) / PXC, y1, (x2 - x1) / PXC, y2, aid);
         });
         y += containerHeight;
       });
       
+      r.setSize(chart_limit, y + 10);
+      //r.setViewBox(10, 10, 100, 100);
     })
 }

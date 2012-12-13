@@ -3,7 +3,8 @@ class UserPlanActivitiesController < ApplicationController
 
   def index
     @project = Project.first
-    @users = Member.where(:project_id => @project.id).order("user_id").collect(&:user)
+    
+    @users = UserPlanActivity.all.collect{|activity| User.find(activity.user_id)}
 
     mindate = UserPlanActivity.where(:project_id => @project.id).collect(&:start_date).min
     maxdate = UserPlanActivity.where(:project_id => @project.id).collect(&:end_date).max
@@ -12,7 +13,7 @@ class UserPlanActivitiesController < ApplicationController
     plans = []
 
     @users.each do |u|
-      activities = UserPlanActivity.where(:user_id => u.id).collect{|u| [u.start_date.strftime("%s"), u.end_date.strftime("%s"), u.load]}
+      activities = UserPlanActivity.where(:user_id => u.id).collect{|u| [u.start_date.strftime("%s"), u.end_date.strftime("%s"), u.load, u.id]}
       tmp = { "user" => u.id, "activities" => activities }
       plans << tmp
     end
