@@ -22,7 +22,7 @@ draw_graph = function() {
     var kf = 0.0005; // 1 second = 0.0005px
     var containerHeight = 35;
     var legendHeight = 80;
-    var deltaY = 15;
+    var deltaY = 0;
 
     // ---- styles ---
     path_opacity_style = {fill: "#000", stroke: "#666", "fill-opacity": 0.5}
@@ -82,7 +82,7 @@ draw_graph = function() {
         // small vertacal separator for days
         draw_svg_line(r, x1, 30, x1, plot_heigth, path_opacity_style);
       // draw week's marker
-      r.text(x1 - 20, legendHeight - 10, getWeekNumber(cur_date));
+      r.text(x1 - 20, legendHeight - 10, getWeekNumber(cur_date)[1]);
     }
     // legend top horizontal line
     draw_svg_line(r, 1, 30, plot_width, 30, path_style);
@@ -99,7 +99,7 @@ draw_graph = function() {
       console.log(plan);
       // changing the sizes of the html containers
       $("td#user_" + plan.user).css("height", containerHeight);
-      $("td#user_" + plan.user).parent().after($("<tr></tr>").css("height", deltaY).html("<td>&nbsp;</td>"))
+      //$("td#user_" + plan.user).parent().after($("<tr></tr>").css("height", deltaY).html("<td>&nbsp;</td>"))
       $("div#holder").parent().attr("rowspan", $("div#holder").parent().attr("rowspan") + plans_count);
       $("div#holder").css("height", $("div#holder").css("height") + containerHeight + deltaY);
       
