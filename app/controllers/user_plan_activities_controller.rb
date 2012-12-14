@@ -59,10 +59,29 @@ class UserPlanActivitiesController < ApplicationController
   end
 
   def edit
+    @plan = UserPlanActivity.find(params[:id])
+    @projects = Project.all.collect{|p| [p.name, p.id]}
+    @users = User.all.collect{|u| [u.login, u.id]}
   end
 
   def show
     @activity = UserPlanActivity.find(params[:id])
+  end
+
+  # PUT /user_load_plans/1
+  # PUT /user_load_plans/1.json
+  def update
+    @plan = UserPlanActivity.find(params[:id])
+
+    respond_to do |format|
+      if @plan.update_attributes(params[:user_plan_activity])
+        format.html { redirect_to user_plan_activity_path(@plan), notice: 'Plan was successfully updated.' }
+        format.json { head :no_content }
+      else
+        format.html { render action: "edit" }
+        format.json { render json: @plan.errors, status: :unprocessable_entity }
+      end
+    end
   end
 
 end

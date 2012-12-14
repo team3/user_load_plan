@@ -1,50 +1,3 @@
-draw_plan_canvas = function(graph_container, r, start_date_sec, end_date_sec, pxc, plot_heigth) {
-  var FONT_STYLE = {font: '16px "Helvetica Neue", Arial', fill: "#666"}
-  var plot_width = (60 * 60 * 24 * 1000 * 7+ end_date_sec  - start_date_sec) / 1000;
-  var days_count = (end_date_sec - start_date_sec) / (60 * 60 * 24);
-
-  // draw the canvas' borders
-  r.path("M0 1L" + plot_width + " 1");
-  r.path("M0 50L" + plot_width + " 50");
-  r.path("M1 " + (plot_heigth - 2) + " L" + plot_width + " " + (plot_heigth - 2));
-  r.path("M1 1L1 50");
-  r.path("M" + plot_width + " 1L " + plot_width + " " + plot_heigth);
-
-  // setting recalculated sizes for the container
-  r.setSize(plot_width, plot_heigth)
-  // if canwar horizonal or vertical size less then holder's initial size - reduce holder's size
-  if (plot_width < parseInt($(graph_container).css("width"))) {
-    $(graph_container).css("width", plot_width + 20);
-    $(graph_container).css("overflow-x", "auto");
-  }
-
-  if (plot_heigth < parseInt($(graph_container).css("width"))) {
-    $(graph_container).css("height", plot_heigth + 20);
-    $(graph_container).css("overflow-y", "auto");
-  }
-
-  // calculating the distance between weeks on the graph in pixels
-  var delta = (60 * 60 * 24) / pxc;
-
-  // variable i uses for pixels calculations, 
-  // variable j uses for days calculations
-  for (i = 0,j = 0; i < plot_width, j < days_count; i+= delta, j++) {
-    // calculating new date (old date plus one day)
-    date = new Date((parseInt(start_date_sec) + (60 * 60 * 24) * j) * 1000);
-    // draw marker for the week`s number
-    r.text(i + 30, 80, getWeekNumber(date)[1]).attr(FONT_STYLE);
-    // if it's Monday - draw horizontal line-separator and draw dates
-    if (date.getDay() == 1) {
-      r.path("M" + i + " 0L" + i + " 50");
-      newdate = new Date(date + 7);
-      var dates_label = date.getDate() + "-" + date.getMonth()+ "-" +date.getFullYear() + "-" + newdate.getDate()+ "-" +newdate.getMonth()+ "-" +newdate.getFullYear();
-      r.text((i - delta * 2) + 30, 20, dates_label).attr(FONT_STYLE);
-    }
-    // draw VERTICAL line for separating the weeks
-    r.path("M" + i + " 50L" + i + " " + plot_heigth);
-  }
-}
-
 function getWeekNumber(d) {
   // Copy date so don't modify original
   d = new Date(d);
@@ -60,60 +13,125 @@ function getWeekNumber(d) {
   return [d.getFullYear(), weekNo];
 }
 
-draw_plan_activity = function(r, pos_x, pos_y, width, height, activity_id) {
-  dashed = {fill: "#3C0", stroke: "#666", "stroke-dasharray": "- "};
-  t = r.rect(pos_x, pos_y, width, height).attr(dashed);
-  t.click(function() {open_activity_edit_view(activity_id)});
-}
-
 open_activity_edit_view = function(activity_id) {
   window.open('/usersloadplan/user_plan_activities/' + activity_id, 300, 600);
 }
 
-draw_plan = function() {
-    $.get('/usersloadplan/user_plan_activities.json', function(data) {
-      var PXC = 1000;
-      var startX = 25;
-      var startY = 125;
-      var deltaY = 30;
-      var containerHeight = 40;
-      var xmin = data.start;
-      var xmax = data.end;
-      var chart_limit = (xmax - xmin) / PXC;
-      var r = Raphael("holder", chart_limit, containerHeight * data.plans.length + 400);
+draw_graph = function() {
+  $.get('/usersloadplan/user_plan_activities.json', function(data) {
+    var kf = 0.0005; // 1 second = 0.0005px
+    var containerHeight = 35;
+    var legendHeight = 80;
+    var deltaY = 15;
+
+    // ---- styles ---
+    path_opacity_style = {fill: "#000", stroke: "#666", "fill-opacity": 0.5}
+    path_style = {fill: "#000", stroke: "#666", "fill-opacity": 1.0}
+    dashed_style = {fill: "#3C0", stroke: "#666", "fill-opacity": 0.9};
+    // ---------------
+
+    console.log(data);
+    min_date = parseInt(data.start); // in seconds
+    max_date = parseInt(data.end); // in seconds
+
+    // calculating plot start
+    plot_start = min_date - 3 * 60 * 60 * 24; // minus 3 days, in seconds
+    plot_end = max_date + 3 * 60 * 60 * 24 // plus 3 days, in seconds
+
+    // calculating the width of the canvas
+    plot_width = (plot_end - plot_start) * kf // in pixels
+    if (plot_width > 10000) {
+      kf *= 0.5;
+      plot_width *= 0.5;
+    }
+
+    // calculating the height of the canvar
+    plot_heigth = legendHeight + parseInt(data.plans.length) * (containerHeight + deltaY) + 40;
+
+    // initialization of the Raphael's canvas
+    r = Raphael("holder", plot_width, plot_heigth);
+
+    // drawing the header of the graph
+    // top horizontal line
+    draw_svg_line(r, 1, 1, plot_width - 1, 1, path_style);
+    // bottom horizonal line
+    draw_svg_line(r, 1, plot_heigth, plot_width, plot_heigth, path_style);
+    // left vertical line
+    draw_svg_line(r, 1, 1, 1, plot_heigth, path_style);
+    // right vertical line
+    draw_svg_line(r, plot_width - 1, 0, plot_width - 1, plot_heigth, path_style);
+
+    // count of the days between maximum date and minimum date
+    days_count = (plot_end - plot_start) / (60 * 60 * 24);
+
+    for (i = 1; i < days_count; i++) {
+      cur_date = new Date((plot_start + i * 24 * 60 * 60) * 1000);
+      // one week before current date in loop (for printing the legend)
+      old_date = new Date((plot_start + (i - 7) * 24 * 60 * 60) * 1000);
+      day_delta = 24 * 60 * 60 * kf // pixels
+      x1 = i * day_delta; // pixels
+      // if current day is monday
+      if (cur_date.getDay() % 7 == 0) {
+        // big vertical separator for weeks
+        draw_svg_line(r, x1, 0, x1, plot_heigth, path_opacity_style);
+        date_formatted = old_date.getDate() + "." + old_date.getMonth() + "." + old_date.getFullYear() + 
+                          " - " + cur_date.getDate()+ "." +cur_date.getMonth()+ "." +cur_date.getFullYear()
+        r.text(x1 - (day_delta * 7) / 2, 10, date_formatted);
+      }
+      else
+        // small vertacal separator for days
+        draw_svg_line(r, x1, 30, x1, plot_heigth, path_opacity_style);
+      // draw week's marker
+      r.text(x1 - 20, legendHeight - 10, getWeekNumber(cur_date));
+    }
+    // legend top horizontal line
+    draw_svg_line(r, 1, 30, plot_width, 30, path_style);
+    // legend bottom horizontal line
+    draw_svg_line(r, 1, legendHeight, plot_width, legendHeight, path_style);
+
+    plans_count = data.plans.length;
+    activities_start_y = legendHeight;
+    $("tr#legend").css("height", activities_start_y);
+    
+    y = activities_start_y;
+    $(data.plans).each(function(i, plan){
       
-      var y = startY;
+      console.log(plan);
+      // changing the sizes of the html containers
+      $("td#user_" + plan.user).css("height", containerHeight);
+      $("td#user_" + plan.user).parent().after($("<tr></tr>").css("height", deltaY).html("<td>&nbsp;</td>"))
+      $("div#holder").parent().attr("rowspan", $("div#holder").parent().attr("rowspan") + plans_count);
+      $("div#holder").css("height", $("div#holder").css("height") + containerHeight + deltaY);
+      
+      // draw horizontal line for users activities
+      // TODO: styles of the lines!
+      draw_svg_line(r, 1, y, plot_width, y, path_style);
+      draw_svg_line(r, 1, y + containerHeight, plot_width, y + containerHeight, path_style);
 
-      $("tr#legend").css("height", startY + deltaY);
-      // for each user
-      $(data.plans).each(function(i, plan) {
-        y += deltaY;
-        draw_plan_canvas($("div#holder"), r, xmin, xmax, PXC, containerHeight * data.plans.length + 400);
-        $("td#user_" + plan.user).css("height", containerHeight);
-        $("td#user_" + plan.user).parent().after($("<tr></tr>").css("height", deltaY).html("<td>&nbsp;</td>"))
-        $("div#holder").parent().attr("rowspan", $("div#holder").parent().attr("rowspan") + 2);
-        $("div#holder").css("height", $("div#holder").css("height") + containerHeight + deltaY);
-        $(plan.activities).each(function(j, activity) {
+      // drawing activities
+      $(plan.activities).each(function(j, activity) { 
+        x1 = parseInt(activity[0]);
+        x2 = parseInt(activity[1]);
+        load = parseInt(activity[2]);
+        aid = activity[3];
 
-          var x1 = activity[0];
-          var x2 = activity[1];
-          var load = activity[2];
-          var aid = activity[3];
+        y1 = y + (containerHeight - (containerHeight * (load / 100)));
+        y2 = (containerHeight * (load / 100));
 
-          r.path("M 0 " + y + " l " + chart_limit + " 0");
-          var y1 = y + (containerHeight - (containerHeight * (load / 100)));
-          var y2 = (containerHeight * (load / 100));
-          
-          dashed = {fill: "#3C0", stroke: "#666", "stroke-dasharray": "- ", "stroke-opacity": 10};
-
-          r.path("M 0 " + (y + containerHeight) + " l " + chart_limit + " 0");
-
-          draw_plan_activity(r, (x1 - xmin) / PXC, y1, (x2 - x1) / PXC, y2, aid);
-        });
-        y += containerHeight;
+        // draw the rectangle for the current activity
+        t = r.rect((x1 - plot_start) * kf, y1, (x2 - x1) * kf, y2).attr(dashed_style);
+        // add onclick listener for the activity rectangle
+        t.click(function() {open_activity_edit_view(aid)});
       });
-      
-      r.setSize(chart_limit, y + 10);
-      //r.setViewBox(10, 10, 100, 100);
-    })
+      y += containerHeight + deltaY;
+    });
+  });
+}
+
+draw_svg_line = function(r, x1, y1, x2, y2, style) {
+  r.path("M " + x1 + " " + y1 + "L" + x2 + " " + y2).attr(style);
+}
+
+open_activity_edit_view = function(activity_id) {
+  window.open('/usersloadplan/user_plan_activities/' + activity_id, 'width=400, height=600');
 }
