@@ -9,7 +9,7 @@ Redmine::Plugin.register :user_load_plan do
   permission :user_load_plan, { :user_load_plan => [:index, :new] }, :public => true
 
   menu(:project_menu,
-       :contracts,
+       :user_load_plan,
        {:controller => 'user_plan_activities', :action => 'index'},
        :caption => "TEST",
        :after => :activity,

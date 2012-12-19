@@ -27,7 +27,7 @@ draw_graph = function() {
     // ---- styles ---
     path_opacity_style = {fill: "#000", stroke: "#666", "fill-opacity": 0.5}
     path_style = {fill: "#000", stroke: "#666", "fill-opacity": 1.0}
-    dashed_style = {fill: "#3C0", stroke: "#666", "fill-opacity": 0.9};
+    dashed_style = {fill: "#3C0", stroke: "#666"};
     // ---------------
 
     console.log(data);
@@ -40,7 +40,7 @@ draw_graph = function() {
 
     // calculating the width of the canvas
     plot_width = (plot_end - plot_start) * kf // in pixels
-    if (plot_width > 10000) {
+    if (plot_width > 20000) {
       kf *= 0.5;
       plot_width *= 0.5;
     }
@@ -64,25 +64,32 @@ draw_graph = function() {
     // count of the days between maximum date and minimum date
     days_count = (plot_end - plot_start) / (60 * 60 * 24);
 
-    for (i = 1; i < days_count; i++) {
+    for (i = 1; i <= days_count; i++) {
       cur_date = new Date((plot_start + i * 24 * 60 * 60) * 1000);
       // one week before current date in loop (for printing the legend)
       old_date = new Date((plot_start + (i - 7) * 24 * 60 * 60) * 1000);
       day_delta = 24 * 60 * 60 * kf // pixels
+      console.log(cur_date);
+      console.log(cur_date.getDay());
       x1 = i * day_delta; // pixels
       // if current day is monday
-      if (cur_date.getDay() % 7 == 0) {
+      if (cur_date.getDay() != 0 && cur_date.getDay() % 6 == 0) {
         // big vertical separator for weeks
-        draw_svg_line(r, x1, 0, x1, plot_heigth, path_opacity_style);
-        date_formatted = old_date.getDate() + "." + old_date.getMonth() + "." + old_date.getFullYear() + 
-                          " - " + cur_date.getDate()+ "." +cur_date.getMonth()+ "." +cur_date.getFullYear()
-        r.text(x1 - (day_delta * 7) / 2, 10, date_formatted);
-      }
-      else
+        draw_svg_line(r, x1 + day_delta, 0, x1 + day_delta, plot_heigth, path_opacity_style);
+        date_formatted = old_date.getDate() + "." + (old_date.getMonth() + 1) + "." + old_date.getFullYear() + 
+                          " - " + cur_date.getDate()+ "." + (cur_date.getMonth() + 1) + "." +cur_date.getFullYear()
+        r.text(x1 + ((day_delta * 7) * 0.4), 10, date_formatted);
+      } 
+      if (cur_date.getDay() == 0)
+        draw_svg_line(r, x1, 30, x1, plot_heigth, path_opacity_style);
+      else {
+        console.log('w');
         // small vertacal separator for days
         draw_svg_line(r, x1, 30, x1, plot_heigth, path_opacity_style);
+      }
+      
       // draw week's marker
-      r.text(x1 - 20, legendHeight - 10, getWeekNumber(cur_date)[1]);
+      r.text(x1 - 15, legendHeight - 15, getWeekNumber(cur_date)[1] + '\n' + cur_date.getDate() + '.' + cur_date.getMonth());
     }
     // legend top horizontal line
     draw_svg_line(r, 1, 30, plot_width, 30, path_style);
@@ -101,7 +108,7 @@ draw_graph = function() {
       $("td#user_" + plan.user).css("height", containerHeight);
       //$("td#user_" + plan.user).parent().after($("<tr></tr>").css("height", deltaY).html("<td>&nbsp;</td>"))
       $("div#holder").parent().attr("rowspan", $("div#holder").parent().attr("rowspan") + plans_count);
-      $("div#holder").css("height", $("div#holder").css("height") + containerHeight + deltaY);
+      $("div#holder").css("height", $("div#holder").css("height") + containerHeight + deltaY - 2);
       
       // draw horizontal line for users activities
       // TODO: styles of the lines!
@@ -114,14 +121,14 @@ draw_graph = function() {
         x2 = parseInt(activity[1]);
         load = parseInt(activity[2]);
         aid = activity[3];
-
+        console.log("aid = " + aid);
         y1 = y + (containerHeight - (containerHeight * (load / 100)));
         y2 = (containerHeight * (load / 100));
 
         // draw the rectangle for the current activity
-        t = r.rect((x1 - plot_start) * kf, y1, (x2 - x1) * kf, y2).attr(dashed_style);
+        t = r.rect((x1 - plot_start) * kf, y1, (x2 - x1) * kf, y2).attr(dashed_style).attr({"fill-opacity": load/100});
         // add onclick listener for the activity rectangle
-        t.click(function() {open_activity_edit_view(aid)});
+        t.attr("href", "/usersloadplan/user_plan_activities/" + aid);
       });
       y += containerHeight + deltaY;
     });
@@ -132,6 +139,9 @@ draw_svg_line = function(r, x1, y1, x2, y2, style) {
   r.path("M " + x1 + " " + y1 + "L" + x2 + " " + y2).attr(style);
 }
 
-open_activity_edit_view = function(activity_id) {
-  window.open('/usersloadplan/user_plan_activities/' + activity_id, 'width=400, height=600');
+open_activity_edit_view = function(event) {
+  console.log(event);
+  console.log(event.scrElement);
+  console.log(event.target.id);
+  //window.open('/usersloadplan/user_plan_activities/' + 1, 'width=400, height=600');
 }
