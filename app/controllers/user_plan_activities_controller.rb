@@ -4,7 +4,7 @@ class UserPlanActivitiesController < ApplicationController
   def index
     @project = Project.first
     
-    @users = UserPlanActivity.all.collect{|activity| User.find(activity.user_id)}
+    @users = UserPlanActivity.all.collect{|activity| User.find(activity.user_id)}.uniq
 
     mindate = UserPlanActivity.where(:project_id => @project.id).collect(&:start_date).min || DateTime.now - 1
     maxdate = UserPlanActivity.where(:project_id => @project.id).collect(&:end_date).max || DateTime.now + 1
